@@ -1,0 +1,238 @@
+/*
+ *  Copyright 2010 by Texas Instruments Incorporated.
+ *  All rights reserved. Property of Texas Instruments Incorporated.
+ *  Restricted rights to use, duplicate or disclose this code are
+ *  granted through contract.
+ *
+ */
+/*
+ *  ======== hello.tcf ========
+ *  Configuration script used to generate the example's configuration files
+ */
+
+utils.loadPlatform("ti.platforms.ezdsp5535");
+
+bios.enableRealTimeAnalysis(prog);
+bios.enableMemoryHeaps(prog);
+bios.enableRtdx(prog);
+bios.enableTskManager(prog);
+
+/*
+ * Enable heaps in DARAM and define label SEG0 for heap usage.
+ */
+
+bios.DARAM.createHeap      = true;
+bios.DARAM.enableHeapLabel = true;
+bios.DARAM["heapLabel"]    = prog.extern("SEG0");
+bios.DARAM.heapSize        = 0x500;
+bios.MEM.BIOSOBJSEG = prog.get("DARAM");
+bios.MEM.MALLOCSEG = prog.get("DARAM");
+
+
+/*
+ *  Define the GBL memory model 
+ */
+
+bios.GBL.MEMORYMODEL = "LARGE";
+
+/*
+ * Create and initialize a LOG object
+ */
+
+var trace;
+trace         = bios.LOG.create("trace");
+trace.bufLen  = 1024;
+trace.logType = "circular";
+
+/*
+ * Set the buffer length of LOG_system buffer
+ */
+
+bios.LOG_system.bufLen = 512;
+
+bios.HWI.instance("HWI_INT15").useDispatcher = 1;
+bios.HWI.instance("HWI_INT15").interruptMask0 = "none";
+bios.HWI.instance("HWI_INT15").interruptMask1 = "none";
+bios.HWI.instance("HWI_INT15").fxn = prog.extern("HWI_I2S_Rx");
+bios.HWI.instance("HWI_INT14").fxn = prog.extern("HWI_I2S_Tx");
+bios.HWI.instance("HWI_INT14").useDispatcher = 1;
+bios.HWI.instance("HWI_INT14").interruptMask0 = "none";
+bios.HWI.instance("HWI_INT14").interruptMask1 = "none";
+bios.HWI.instance("HWI_INT14").fxn = prog.extern("HWI_I2S_Tx", "asm");
+bios.HWI.instance("HWI_INT14").fxn = prog.extern("HWI_I2S_Tx");
+bios.SWI.create("SWIPing");
+bios.SWI.instance("SWIPing").order = 1;
+bios.SWI.instance("SWIPing").comment = "this SWI will process ping samples";
+bios.SWI.instance("SWIPing").fxn = prog.extern("SWIPingFunc");
+bios.SWI.instance("SWIPing").priority = 7;
+bios.SWI.create("SWIPong");
+bios.SWI.instance("SWIPong").order = 2;
+bios.SWI.instance("SWIPong").priority = 7;
+bios.SWI.instance("SWIPong").fxn = prog.extern("SWIPongFunc");
+bios.PRD.create("PRD0");
+bios.PRD.instance("PRD0").order = 1;
+bios.PRD.instance("PRD0").period = 500;
+bios.PRD.instance("PRD0").fxn = prog.extern("PRD_myPeriodicFunc");
+bios.MBX.create("MBX0");
+bios.MBX.instance("MBX0").messageSize = 48;
+bios.MBX.instance("MBX0").length = 2;
+bios.TSK.create("TSKDisplay");
+bios.TSK.instance("TSKDisplay").order = 1;
+bios.TSK.instance("TSKDisplay").fxn = prog.extern("TSKDisplayFunc");
+bios.TSK.instance("TSKDisplay").priority = 7;
+bios.SWI.instance("PRD_swi").order = 1;
+bios.SWI.instance("KNL_swi").order = 2;
+bios.SWI.instance("SWIPong").order = 3;
+bios.SWI.instance("SWIPing").destroy();
+bios.SWI.instance("SWIPong").destroy();
+bios.TSK.instance("TSK_idle").order = 1;
+bios.TSK.instance("TSKDisplay").destroy();
+bios.MBX.instance("MBX0").destroy();
+bios.PRD.instance("PRD0").destroy();
+bios.IDL.create("IDLUserInterface");
+bios.IDL.instance("IDLUserInterface").order = 1;
+bios.IDL.instance("IDLUserInterface").fxn = prog.extern("IDL_UserInterface");
+bios.TSK.create("TSKUI");
+bios.TSK.instance("TSKUI").order = 2;
+bios.TSK.instance("TSKUI").fxn = prog.extern("TSKUserInterface");
+bios.TSK.instance("TSKUI").priority = 8;
+bios.SEM.create("SEMUI");
+bios.TSK.instance("TSKUI").stackSize = 200;
+bios.PRD.create("PRD0");
+bios.PRD.instance("PRD0").order = 1;
+bios.PRD.instance("PRD0").period = 100;
+bios.PRD.instance("PRD0").fxn = prog.extern("PRD_test");
+bios.TSK.create("TSKAudio");
+bios.TSK.instance("TSKAudio").order = 3;
+bios.TSK.instance("TSKAudio").priority = 9;
+bios.TSK.instance("TSKAudio").fxn = prog.extern("TSKAudio");
+bios.TSK.instance("TSKAudio").fxn = prog.extern("TSKAudioFunc");
+bios.TSK.create("TSKFFT");
+bios.TSK.instance("TSKFFT").order = 4;
+bios.TSK.instance("TSKFFT").fxn = prog.extern("TSKFFTFunc");
+bios.MBX.create("MBXAudio");
+bios.MBX.create("MBXFFT");
+bios.MBX.instance("MBXAudio").messageSize = 48;
+bios.MEM.CONSTSEG = prog.get("SARAM");
+bios.MEM.CONSTSEG = prog.get("DARAM");
+bios.MEM.CONSTSEG = prog.get("SARAM");
+bios.MEM.PINITSEG = prog.get("SARAM");
+bios.MEM.CINITSEG = prog.get("SARAM");
+bios.HWI.instance("HWI_INT15").interruptMask0 = "all";
+bios.HWI.instance("HWI_INT15").interruptMask1 = "all";
+bios.HWI.instance("HWI_INT14").interruptMask0 = "all";
+bios.HWI.instance("HWI_INT14").interruptMask1 = "all";
+bios.TSK.instance("TSKFFT").order = 3;
+bios.TSK.instance("TSKAudio").destroy();
+bios.TSK.instance("TSKFFT").destroy();
+bios.TSK.instance("TSKUI").destroy();
+bios.PRD.instance("PRD0").destroy();
+bios.IDL.instance("LNK_dataPump").order = 1;
+bios.IDL.instance("RTA_dispatcher").order = 2;
+bios.IDL.instance("IDL_cpuLoad").order = 3;
+bios.IDL.instance("PWRM_idleDomains").order = 4;
+bios.IDL.instance("IDLUserInterface").destroy();
+bios.TSK.create("TSK_UserInterface");
+bios.TSK.instance("TSK_UserInterface").order = 3;
+bios.TSK.instance("TSK_UserInterface").fxn = prog.extern("TSKUserInterface");
+bios.TSK.instance("TSK_UserInterface").priority = 7;
+bios.PRD.create("PRD_HeartBeat");
+bios.PRD.instance("PRD_HeartBeat").order = 1;
+bios.PRD.instance("PRD_HeartBeat").fxn = prog.extern("PRDHeartBeat", "asm");
+bios.PRD.instance("PRD_HeartBeat").period = 500;
+bios.PRD.instance("PRD_HeartBeat").fxn = prog.extern("PRDHeartBeat");
+bios.PRD.instance("PRD_HeartBeat").period = 2000;
+bios.PRD.instance("PRD_HeartBeat").period = 500;
+bios.SEM.create("SEMHeartBeat");
+bios.SEM.instance("SEMHeartBeat").count = 1;
+bios.SEM.instance("SEMHeartBeat").count = 0;
+bios.MBX.instance("MBXFFT").destroy();
+bios.MBX.instance("MBXAudio").destroy();
+bios.MBX.create("RAW_MBX");
+bios.MBX.create("PROCESSED_MBX");
+bios.MBX.instance("PROCESSED_MBX").messageSize = 24;
+bios.MBX.instance("PROCESSED_MBX").length = 2;
+bios.MBX.instance("RAW_MBX").messageSize = 24;
+bios.MBX.instance("RAW_MBX").length = 2;
+bios.MBX.instance("RAW_MBX").comment = "Stores 1ms of raw audio data";
+bios.TSK.create("TSK_ProcessAudio");
+bios.TSK.instance("TSK_ProcessAudio").order = 4;
+bios.TSK.instance("TSK_ProcessAudio").priority = 8;
+bios.TSK.instance("TSK_ProcessAudio").fxn = prog.extern("TSKProcessAudio");
+bios.MBX.create("FFT_MBX");
+bios.MBX.instance("FFT_MBX").messageSize = 128;
+bios.TSK.instance("TSK_UserInterface").priority = 3;
+bios.TSK.create("TSK_writeFFTtoDisplay");
+bios.TSK.instance("TSK_writeFFTtoDisplay").order = 5;
+bios.TSK.instance("TSK_writeFFTtoDisplay").priority = 7;
+bios.TSK.instance("TSK_writeFFTtoDisplay").fxn = prog.extern("TSKWriteFFTtoDisplay");
+bios.TSK.instance("TSK_UserInterface").priority = 7;
+bios.TSK.instance("TSK_writeFFTtoDisplay").priority = 6;
+bios.MBX.instance("FFT_MBX").messageSize = 256;
+bios.TSK.create("TSK_setLEDs");
+bios.TSK.instance("TSK_setLEDs").order = 6;
+bios.TSK.instance("TSK_setLEDs").priority = 13;
+bios.TSK.instance("TSK_setLEDs").fxn = prog.extern("TSKSetLEDs");
+bios.TSK.instance("TSK_setLEDs").order = 1;
+bios.TSK.instance("TSK_idle").order = 2;
+bios.TSK.instance("TSK_setLEDs").priority = 15;
+bios.TSK.instance("TSK_ProcessAudio").order = 1;
+bios.TSK.instance("TSK_setLEDs").order = 2;
+bios.TSK.instance("TSK_idle").order = 3;
+bios.TSK.instance("TSK_UserInterface").order = 4;
+bios.TSK.instance("TSK_ProcessAudio").priority = 14;
+bios.TSK.instance("TSK_UserInterface").order = 1;
+bios.TSK.instance("TSK_ProcessAudio").order = 2;
+bios.TSK.instance("TSK_setLEDs").order = 3;
+bios.TSK.instance("TSK_idle").order = 4;
+bios.TSK.instance("TSK_UserInterface").priority = 13;
+bios.TSK.instance("TSK_writeFFTtoDisplay").order = 1;
+bios.TSK.instance("TSK_UserInterface").order = 2;
+bios.TSK.instance("TSK_ProcessAudio").order = 3;
+bios.TSK.instance("TSK_setLEDs").order = 4;
+bios.TSK.instance("TSK_idle").order = 5;
+bios.TSK.instance("TSK_writeFFTtoDisplay").priority = 12;
+bios.TSK.instance("TSK_idle").order = 1;
+bios.TSK.instance("TSK_writeFFTtoDisplay").order = 4;
+bios.TSK.instance("TSK_setLEDs").destroy();
+bios.PRD.instance("PRD_HeartBeat").destroy();
+bios.PRD.create("PRD_ms");
+bios.PRD.instance("PRD_ms").order = 2;
+bios.PRD.instance("PRD_ms").fxn = prog.extern("PRDHeartBeat");
+bios.PRD.instance("PRD_ms").period = 500;
+bios.PRD.instance("PRD_ms").fxn = prog.extern("PRDms");
+bios.PRD.instance("PRD_ms").period = 1;
+bios.MBX.instance("RAW_MBX").destroy();
+bios.MBX.create("FILTER_MBX");
+bios.MBX.instance("FILTER_MBX").messageSize = 24;
+bios.MBX.instance("FILTER_MBX").comment = "Stores 1ms of raw audio data";
+bios.MBX.instance("FILTER_MBX").length = 2;
+bios.MBX.create("CSVD_MBX");
+bios.MBX.instance("CSVD_MBX").messageSize = 24;
+bios.MBX.instance("CSVD_MBX").length = 2;
+bios.TSK.create("TSK_Voice_EnDecoder");
+bios.TSK.instance("TSK_Voice_EnDecoder").order = 5;
+bios.TSK.instance("TSK_Voice_EnDecoder").fxn = prog.extern("TSKVoiceEnDecoder");
+bios.TSK.instance("TSK_Voice_EnDecoder").order = 1;
+bios.TSK.instance("TSK_idle").order = 2;
+bios.TSK.instance("TSK_UserInterface").order = 3;
+bios.TSK.instance("TSK_ProcessAudio").order = 4;
+bios.TSK.instance("TSK_writeFFTtoDisplay").order = 5;
+bios.TSK.instance("TSK_Voice_EnDecoder").priority = 14;
+bios.PRD.instance("PRD_ms").order = 1;
+bios.PRD.create("PRD_SW_Hold");
+bios.PRD.instance("PRD_SW_Hold").order = 3;
+bios.PRD.instance("PRD_SW_Hold").fxn = prog.extern("PRDSWHold");
+bios.PRD.instance("PRD_SW_Hold").mode = "one-shot";
+bios.PRD.instance("PRD_SW_Hold").period = 1500;
+bios.MEM.TEXTSEG = prog.get("SARAM");
+bios.MBX.instance("CSVD_MBX").destroy();
+bios.MBX.create("CVSD_MBX");
+bios.MBX.instance("CVSD_MBX").length = 2;
+bios.MBX.instance("CVSD_MBX").messageSize = 24;
+bios.PRD.instance("PRD_SW_Hold").period = 1000;
+// !GRAPHICAL_CONFIG_TOOL_SCRIPT_INSERT_POINT!
+
+if (config.hasReportedError == false) {
+    prog.gen();
+}
